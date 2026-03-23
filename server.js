@@ -6,31 +6,33 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-let users = {};
-
 app.use(express.static(__dirname));
 
+let users = {};
+
 io.on("connection", (socket) => {
+    console.log("User connected");
 
-  socket.on("join", (username) => {
-    users[socket.id] = username;
-    io.emit("users", Object.values(users));
-  });
-
-  socket.on("chat message", (msg) => {
-    io.emit("chat message", {
-      user: users[socket.id],
-      msg
+    socket.on("join", (username) => {
+        users[socket.id] = username;
+        io.emit("message", username + " دخل الشات 🔥");
     });
-  });
 
-  socket.on("disconnect", () => {
-    delete users[socket.id];
-    io.emit("users", Object.values(users));
-  });
+    socket.on("message", (msg) => {
+        const username = users[socket.id];
+        io.emit("message", username + ": " + msg);
+    });
 
+    socket.on("disconnect", () => {
+        const username = users[socket.id];
+        if (username) {
+            io.emit("message", username + " خرج ❌");
+        }
+        delete users[socket.id];
+    });
 });
 
-server.listen(process.env.PORT || 3000, () => {
-  console.log("Server running...");
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
 });
