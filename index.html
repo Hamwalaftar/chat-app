@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>Dating App</title>
+
+<style>
+body {
+    background: black;
+    color: white;
+    text-align: center;
+    font-family: Arial;
+}
+
+.card {
+    background: #222;
+    padding: 20px;
+    border-radius: 15px;
+    width: 300px;
+    margin: auto;
+}
+
+img {
+    width: 100%;
+    border-radius: 10px;
+}
+
+button {
+    padding: 10px;
+    margin: 5px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.like { background: red; color: white; }
+.next { background: gray; color: white; }
+.chat { background: green; color: white; }
+
+.chat-box {
+    display: none;
+    margin-top: 20px;
+}
+
+input {
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🔥 Dating App</h1>
+
+<input type="file" id="fileInput">
+
+<div class="card">
+    <img id="image" src="https://picsum.photos/300">
+    <h2 id="name">Ahmed</h2>
+
+    <button class="like" onclick="like()">❤️ إعجاب</button>
+    <button class="next" onclick="nextUser()">⏭ تخطي</button>
+    <button class="chat" onclick="openChat()">💬 شات</button>
+
+    <p>❤️ عدد الإعجابات: <span id="likes">0</span></p>
+
+    <div class="chat-box" id="chatBox">
+        <div id="messages" style="height:200px;overflow:auto;"></div>
+        <input type="text" id="msgInput" placeholder="اكتب رسالة">
+        <button onclick="sendMsg()">إرسال</button>
+    </div>
+</div>
+
+<!-- مهم جداً -->
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+// 👇 المستخدمين
+const users = [
+    { name: "Ahmed", image: "https://picsum.photos/300?1" },
+    { name: "Ali", image: "https://picsum.photos/300?2" },
+    { name: "Omar", image: "https://picsum.photos/300?3" }
+];
+
+let current = 0;
+
+// 👇 تحميل اللايكات
+let likedUsers = JSON.parse(localStorage.getItem("likes")) || [];
+document.getElementById("likes").innerText = likedUsers.length;
+
+// 👇 تغيير الشخص
+function nextUser() {
+    current++;
+    if (current >= users.length) current = 0;
+
+    document.getElementById("name").innerText = users[current].name;
+    document.getElementById("image").src = users[current].image;
+}
+
+// 👇 لايك
+function like() {
+    let user = users[current];
+
+    likedUsers.push(user);
+    localStorage.setItem("likes", JSON.stringify(likedUsers));
+
+    document.getElementById("likes").innerText = likedUsers.length;
+}
+
+// 👇 رفع صورة
+const fileInput = document.getElementById("fileInput");
+const image = document.getElementById("image");
+
+fileInput.addEventListener("change", function () {
+    const file = this.files[0];
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            image.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// 🔥 الشات الحقيقي
+const socket = io();
+let username = "User" + Math.floor(Math.random() * 1000);
+
+// بدء البحث عن شخص
+socket.emit("start", { name: username });
+
+// استقبال رسالة
+socket.on("message", (msg) => {
+    const messages = document.getElementById("messages");
+    messages.innerHTML += "<div>👤: " + msg + "</div>";
+    messages.scrollTop = messages.scrollHeight;
+});
+
+// فتح الشات
+function openChat() {
+    document.getElementById("chatBox").style.display = "block";
+}
+
+// إرسال رسالة
+function sendMsg() {
+    const input = document.getElementById("msgInput");
+    const messages = document.getElementById("messages");
+
+    if (input.value !== "") {
+        socket.emit("message", input.value);
+
+        messages.innerHTML += "<div>أنا: " + input.value + "</div>";
+        messages.scrollTop = messages.scrollHeight;
+
+        input.value = "";
+    }
+}
+
+</script>
+
+</body>
+</html>
